@@ -6,8 +6,13 @@ include(qt.cmake)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+
 # 设置 QtNodes 路径
-set(QtNodes_DIR " ${PROJECT_SOURCES}/3rd/QtNodes")
+set(QtNodes_DIR "${CMAKE_SOURCE_DIR}/3rd/nodeeditor")
 
 # 添加 QtNodes 子目录
 add_subdirectory(${QtNodes_DIR} QtNodes_build)
@@ -23,6 +28,8 @@ qt_standard_project_setup()
 
 set(PROJECT_SOURCES
     src/main.cpp
+    src/models.cpp
+    src/models.hpp
     src/FFVision.ui
     src/FFVision.h
     src/FFVision.cpp
@@ -36,10 +43,10 @@ set_target_properties(${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME}
+    PRIVATE QtNodes
     PRIVATE
         Qt::Core
         Qt::Gui
         Qt::Widgets
-     PRIVATE QtNodes
 )
 
