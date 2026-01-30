@@ -17,6 +17,9 @@ set(QtNodes_DIR "${CMAKE_SOURCE_DIR}/3rd/nodeeditor")
 # 添加 QtNodes 子目录
 add_subdirectory(${QtNodes_DIR} QtNodes_build)
 
+# 添加 QtNodes 子目录
+add_subdirectory("${CMAKE_SOURCE_DIR}/test" FFtest)
+
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
 find_package(Qt${QT_VERSION_MAJOR}
     COMPONENTS
@@ -25,6 +28,7 @@ find_package(Qt${QT_VERSION_MAJOR}
         Widgets
 )
 qt_standard_project_setup()
+
 
 set(PROJECT_SOURCES
     src/main.cpp
@@ -49,4 +53,3 @@ target_link_libraries(${PROJECT_NAME}
         Qt::Gui
         Qt::Widgets
 )
-
