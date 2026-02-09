@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(FFVision LANGUAGES CXX)
 
-include(qt.cmake)
+#include(qt.cmake)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -11,45 +11,50 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 
-# 设置 QtNodes 路径
-set(QtNodes_DIR "${CMAKE_SOURCE_DIR}/3rd/nodeeditor")
+# QtNodes path
+#set(QtNodes_DIR "${CMAKE_SOURCE_DIR}/3rd/nodeeditor")
 
-# 添加 QtNodes 子目录
-add_subdirectory(${QtNodes_DIR} QtNodes_build)
+# QtNodes
+#add_subdirectory(${QtNodes_DIR} QtNodes_build)
 
-# 添加 QtNodes 子目录
-add_subdirectory("${CMAKE_SOURCE_DIR}/test" FFtest)
+# QtNodes subdirectory
+#add_subdirectory("${CMAKE_SOURCE_DIR}/test" FFtest)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
-find_package(Qt${QT_VERSION_MAJOR}
-    COMPONENTS
-        Core
-        Gui
-        Widgets
-)
-qt_standard_project_setup()
+#find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
+#find_package(Qt${QT_VERSION_MAJOR}
+#    COMPONENTS
+#        Core
+#        Gui
+#        Widgets
+#)
+#qt_standard_project_setup()
 
 
 set(PROJECT_SOURCES
-    src/main.cpp
-    src/models.cpp
-    src/models.hpp
-    src/FFVision.ui
-    src/FFVision.h
-    src/FFVision.cpp
+    src/flow/FlowExample.cpp
+    src/flow/Edge.h
+    src/flow/ExecutionContext.h
+    src/flow/Flow.h
+    src/flow/FlowEngine.h
+    src/flow/Graph.h
+    src/flow/Node.h
+    src/flow/Nodes.h
 )
 
-qt_add_executable(${PROJECT_NAME} ${PROJECT_SOURCES})
+# Create executable (console application)
+add_executable(${PROJECT_NAME} ${PROJECT_SOURCES})
 
+# Set as console application (show console window)
 set_target_properties(${PROJECT_NAME}
     PROPERTIES
-        WIN32_EXECUTABLE TRUE
+        WIN32_EXECUTABLE FALSE
 )
 
 target_link_libraries(${PROJECT_NAME}
-    PRIVATE QtNodes
-    PRIVATE
-        Qt::Core
-        Qt::Gui
-        Qt::Widgets
+
 )
+#    PRIVATE QtNodes
+#    PRIVATE
+#        Qt::Core
+#        Qt::Gui
+#        Qt::Widgets
