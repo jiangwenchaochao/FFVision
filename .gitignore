@@ -1,2 +1,8 @@
 .vs
 out
+build
+flow_engine/build
+flow_engine/build-ninja
+.vscode
+build-vs-cc
+.cursor

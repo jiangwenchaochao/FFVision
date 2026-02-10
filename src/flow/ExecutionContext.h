@@ -16,7 +16,7 @@ namespace flow {
         bool success;
         std::string errorMessage;
         std::chrono::microseconds executionTime;
-        std::map<int, std::any> outputs;
+        std::map<std::string, std::any> outputs;  // Port name -> data
     };
 
     // Execution context - stores all intermediate data during execution
@@ -27,21 +27,21 @@ namespace flow {
         // ========== Output Data Management ==========
         
         // Store node outputs
-        void setOutputs(int nodeId, const std::map<int, std::any>& outputs) {
+        void setOutputs(int nodeId, const std::map<std::string, std::any>& outputs) {
             nodeOutputs_[nodeId] = outputs;
         }
         
         // Get all outputs of a node
-        std::map<int, std::any> getOutputs(int nodeId) const {
+        std::map<std::string, std::any> getOutputs(int nodeId) const {
             auto it = nodeOutputs_.find(nodeId);
-            return (it != nodeOutputs_.end()) ? it->second : std::map<int, std::any>{};
+            return (it != nodeOutputs_.end()) ? it->second : std::map<std::string, std::any>{};
         }
         
         // Get output of a specific port
-        std::any getOutput(int nodeId, int portIndex) const {
+        std::any getOutput(int nodeId, const std::string& portName) const {
             auto it = nodeOutputs_.find(nodeId);
             if (it != nodeOutputs_.end()) {
-                auto portIt = it->second.find(portIndex);
+                auto portIt = it->second.find(portName);
                 if (portIt != it->second.end()) {
                     return portIt->second;
                 }
@@ -56,8 +56,8 @@ namespace flow {
         
         // Type-safe output retrieval
         template<typename T>
-        T getOutputAs(int nodeId, int portIndex, const T& defaultValue = T{}) const {
-            auto output = getOutput(nodeId, portIndex);
+        T getOutputAs(int nodeId, const std::string& portName, const T& defaultValue = T{}) const {
+            auto output = getOutput(nodeId, portName);
             if (output.has_value()) {
                 try {
                     return std::any_cast<T>(output);
@@ -136,7 +136,7 @@ namespace flow {
         }
 
     private:
-        std::map<int, std::map<int, std::any>> nodeOutputs_;  // nodeId -> (portIndex -> data)
+        std::map<int, std::map<std::string, std::any>> nodeOutputs_;  // nodeId -> (portName -> data)
         std::map<std::string, std::any> variables_;           // Named variables
         std::vector<NodeExecutionRecord> executionRecords_;   // Execution records
         std::chrono::microseconds totalExecutionTime_;

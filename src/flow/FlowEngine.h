@@ -112,7 +112,7 @@ namespace flow {
         }
         
         // Execute single node standalone (for debugging)
-        ExecuteResult executeNodeStandalone(NodePtr node, const std::map<int, std::any>& mockInputs) {
+        ExecuteResult executeNodeStandalone(NodePtr node, const std::map<std::string, std::any>& mockInputs) {
             if (!node) {
                 return ExecuteResult::Error("Null node");
             }
@@ -273,20 +273,23 @@ namespace flow {
         }
         
         // Gather input data for a node
-        std::map<int, std::any> gatherInputs(NodePtr node, Graph& graph) {
-            std::map<int, std::any> inputs;
+        std::map<std::string, std::any> gatherInputs(NodePtr node, Graph& graph) {
+            std::map<std::string, std::any> inputs;
             
             for (const auto& edge : graph.getIncomingEdges(node->getId())) {
                 if (!edge->isActive()) continue;
                 
                 int srcId = edge->getSource()->getId();
-                int srcPort = edge->getSourcePort();
-                int dstPort = edge->getDestinationPort();
+                int srcPortIndex = edge->getSourcePort();
+                int dstPortIndex = edge->getDestinationPort();
                 
                 // Get output from source node via context
-                auto output = context_.getOutput(srcId, srcPort);
+                const std::string srcPortName = edge->getSource()->getOutputPortName(srcPortIndex);
+                const std::string dstPortName = edge->getDestination()->getInputPortName(dstPortIndex);
+                
+                auto output = context_.getOutput(srcId, srcPortName);
                 if (output.has_value()) {
-                    inputs[dstPort] = output;
+                    inputs[dstPortName] = output;
                 }
             }
             

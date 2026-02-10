@@ -151,7 +151,7 @@ void example_run_until() {
     engine.runUntil(graph, add->getId());
     
     // 查看 Add 节点的输出
-    auto addResult = engine.getContext().getOutputAs<double>(add->getId(), 0);
+    auto addResult = engine.getContext().getOutputAs<double>(add->getId(), "result");
     std::cout << "Add result (stopped here): " << addResult << std::endl;
     
     // 查看执行时间
@@ -172,15 +172,15 @@ void example_standalone() {
     auto add = std::make_shared<AddNode>(1, "TestAdd");
     
     // 手动提供输入进行测试
-    std::map<int, std::any> mockInputs;
-    mockInputs[0] = 7.0;
-    mockInputs[1] = 8.0;
+    std::map<std::string, std::any> mockInputs;
+    mockInputs["a"] = 7.0;
+    mockInputs["b"] = 8.0;
     
     FlowEngine engine;
     auto result = engine.executeNodeStandalone(add, mockInputs);
     
     if (result.success) {
-        double output = std::any_cast<double>(result.outputs.at(0));
+        double output = std::any_cast<double>(result.outputs.at("result"));
         std::cout << "7 + 8 = " << output << std::endl;
     } else {
         std::cout << "Error: " << result.errorMessage << std::endl;

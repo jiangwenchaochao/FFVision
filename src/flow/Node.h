@@ -44,7 +44,7 @@ namespace flow {
     struct ExecuteResult {
         bool success;
         std::string errorMessage;
-        std::map<std::string, std::any> outputs;  // Port index -> Output data
+        std::map<std::string, std::any> outputs;  // Port name -> Output data
         int nextBranch;  // For control flow nodes, -1 = default, 0/1 = branch selection
         
         ExecuteResult() : success(true), nextBranch(-1) {}
@@ -86,6 +86,21 @@ namespace flow {
         // Get node input/output port definitions
         virtual std::vector<PortInfo> getInputPorts() const { return {}; }
         virtual std::vector<PortInfo> getOutputPorts() const { return {}; }
+
+        // Convenience: map port index <-> name (fallback to "0","1"...)
+        std::string getInputPortName(int portIndex) const {
+            for (const auto& p : getInputPorts()) {
+                if (p.index == portIndex) return p.name;
+            }
+            return std::to_string(portIndex);
+        }
+
+        std::string getOutputPortName(int portIndex) const {
+            for (const auto& p : getOutputPorts()) {
+                if (p.index == portIndex) return p.name;
+            }
+            return std::to_string(portIndex);
+        }
         
         // Node initialization (optional override)
         virtual bool init() { return true; }

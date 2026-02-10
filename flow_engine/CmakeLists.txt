@@ -1,0 +1,46 @@
+cmake_minimum_required(VERSION 3.16)
+project(FlowEngine LANGUAGES CXX)
+
+set(PROJECT_NAME FlowEngine)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# ---------- Fix garbled output on Windows / MSVC ----------
+# 1) Ensure MSVC/clang-cl treat source files as UTF-8.
+#    This prevents mojibake when errors/warnings reference Chinese comments/strings.
+# 2) Other compilers keep default behavior (you can extend if needed).
+if(MSVC)
+set(ENV{VSLANG} 1033)
+    add_compile_options(/utf-8)
+endif()
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+
+set(PROJECT_SOURCES
+    src/main.cpp
+    src/Edge.h
+    src/ExecutionContext.h
+    src/Flow.h
+    src/FlowEngine.h
+    src/Graph.h
+    src/Node.h
+    src/Nodes.h
+)
+
+# Create executable (console application)
+add_executable(${PROJECT_NAME} ${PROJECT_SOURCES})
+
+# Set as console application (show console window)
+set_target_properties(${PROJECT_NAME}
+    PROPERTIES
+        WIN32_EXECUTABLE FALSE
+)
+
+target_link_libraries(${PROJECT_NAME}
+
+)
+

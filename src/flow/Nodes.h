@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Node.h"
+#include "SourceImageNode.h"
 #include <iostream>
 #include <cmath>
 
@@ -20,9 +21,9 @@ namespace flow {
             return { PortInfo(0, "value", PortDataType::Number) };
         }
         
-        ExecuteResult execute(const std::map<int, std::any>& /*inputs*/) override {
+        ExecuteResult execute(const std::map<std::string, std::any>& /*inputs*/) override {
             double value = getParam<double>("value", 0.0);
-            return ExecuteResult::Success({{0, value}});
+            return ExecuteResult::Success({{"value", value}});
         }
     };
 
@@ -43,11 +44,11 @@ namespace flow {
             return { PortInfo(0, "result", PortDataType::Number) };
         }
         
-        ExecuteResult execute(const std::map<int, std::any>& inputs) override {
+        ExecuteResult execute(const std::map<std::string, std::any>& inputs) override {
             try {
-                double a = std::any_cast<double>(inputs.at(0));
-                double b = std::any_cast<double>(inputs.at(1));
-                return ExecuteResult::Success({{0, a + b}});
+                double a = std::any_cast<double>(inputs.at("a"));
+                double b = std::any_cast<double>(inputs.at("b"));
+                return ExecuteResult::Success({{"result", a + b}});
             } catch (...) {
                 return ExecuteResult::Error("Invalid input types for Add");
             }
@@ -71,11 +72,11 @@ namespace flow {
             return { PortInfo(0, "result", PortDataType::Number) };
         }
         
-        ExecuteResult execute(const std::map<int, std::any>& inputs) override {
+        ExecuteResult execute(const std::map<std::string, std::any>& inputs) override {
             try {
-                double a = std::any_cast<double>(inputs.at(0));
-                double b = std::any_cast<double>(inputs.at(1));
-                return ExecuteResult::Success({{0, a * b}});
+                double a = std::any_cast<double>(inputs.at("a"));
+                double b = std::any_cast<double>(inputs.at("b"));
+                return ExecuteResult::Success({{"result", a * b}});
             } catch (...) {
                 return ExecuteResult::Error("Invalid input types for Multiply");
             }
@@ -103,10 +104,10 @@ namespace flow {
             return { PortInfo(0, "result", PortDataType::Bool) };
         }
         
-        ExecuteResult execute(const std::map<int, std::any>& inputs) override {
+        ExecuteResult execute(const std::map<std::string, std::any>& inputs) override {
             try {
-                double a = std::any_cast<double>(inputs.at(0));
-                double b = std::any_cast<double>(inputs.at(1));
+                double a = std::any_cast<double>(inputs.at("a"));
+                double b = std::any_cast<double>(inputs.at("b"));
                 Op op = static_cast<Op>(getParam<int>("op", 0));
                 
                 bool result = false;
@@ -119,7 +120,7 @@ namespace flow {
                     case Op::GreaterEqual: result = (a >= b); break;
                 }
                 
-                return ExecuteResult::Success({{0, result}});
+                return ExecuteResult::Success({{"result", result}});
             } catch (...) {
                 return ExecuteResult::Error("Invalid input types for Compare");
             }
@@ -148,21 +149,21 @@ namespace flow {
             };
         }
         
-        ExecuteResult execute(const std::map<int, std::any>& inputs) override {
+        ExecuteResult execute(const std::map<std::string, std::any>& inputs) override {
             try {
-                bool condition = std::any_cast<bool>(inputs.at(0));
+                bool condition = std::any_cast<bool>(inputs.at("condition"));
                 
                 // Passthrough data (if any)
                 std::any data;
-                auto it = inputs.find(1);
+                auto it = inputs.find("data");
                 if (it != inputs.end()) {
                     data = it->second;
                 }
                 
                 // Return branch selection
                 int branch = condition ? 0 : 1;
-                std::map<int, std::any> outputs;
-                outputs[branch] = data;
+                std::map<std::string, std::any> outputs;
+                outputs[condition ? "true" : "false"] = data;
                 
                 return ExecuteResult::Branch(branch, outputs);
             } catch (...) {
@@ -195,9 +196,9 @@ namespace flow {
             return ports;
         }
         
-        ExecuteResult execute(const std::map<int, std::any>& inputs) override {
+        ExecuteResult execute(const std::map<std::string, std::any>& inputs) override {
             try {
-                int index = static_cast<int>(std::any_cast<double>(inputs.at(0)));
+                int index = static_cast<int>(std::any_cast<double>(inputs.at("index")));
                 int caseCount = getParam<int>("caseCount", 3);
                 
                 // Clamp range
@@ -205,12 +206,13 @@ namespace flow {
                 if (index >= caseCount) index = caseCount - 1;
                 
                 std::any data;
-                auto it = inputs.find(1);
+                auto it = inputs.find("data");
                 if (it != inputs.end()) {
                     data = it->second;
                 }
                 
-                return ExecuteResult::Branch(index, {{index, data}});
+                const std::string outKey = "case" + std::to_string(index);
+                return ExecuteResult::Branch(index, {{outKey, data}});
             } catch (...) {
                 return ExecuteResult::Error("Invalid index type for Switch");
             }
@@ -229,8 +231,8 @@ namespace flow {
             return { PortInfo(0, "value", PortDataType::Any) };
         }
         
-        ExecuteResult execute(const std::map<int, std::any>& inputs) override {
-            auto it = inputs.find(0);
+        ExecuteResult execute(const std::map<std::string, std::any>& inputs) override {
+            auto it = inputs.find("value");
             if (it == inputs.end()) {
                 return ExecuteResult::Error("No input for Print");
             }
@@ -281,11 +283,14 @@ namespace flow {
             return { PortInfo(0, "out", PortDataType::Any) };
         }
         
-        ExecuteResult execute(const std::map<int, std::any>& inputs) override {
-            // Return first input that has a value
-            for (const auto& [port, value] : inputs) {
-                if (value.has_value()) {
-                    return ExecuteResult::Success({{0, value}});
+        ExecuteResult execute(const std::map<std::string, std::any>& inputs) override {
+            // Return first input that has a value (in index order: in0, in1, ...)
+            int count = getParam<int>("inputCount", 2);
+            for (int i = 0; i < count; i++) {
+                const std::string key = "in" + std::to_string(i);
+                auto it = inputs.find(key);
+                if (it != inputs.end() && it->second.has_value()) {
+                    return ExecuteResult::Success({{"out", it->second}});
                 }
             }
             return ExecuteResult::Success({});
