@@ -6,8 +6,21 @@
 #include <any>
 #include <memory>
 #include <functional>
+#include <typeindex>
+#include <type_traits>
+#include <cstdint>
+#include "context.h"
 
 namespace flow {
+
+    /// 结果类型
+    enum class result {
+        ok,         
+        ng_low,     
+        ng_high,   
+        ng_error,   
+        retest      
+    };
 
     // Node type enumeration
     enum class NodeType {
@@ -18,90 +31,106 @@ namespace flow {
         Sink         // Output only (Send, Save, Display)
     };
 
-    // Port data type
+    // Port data type (high-level category for UI and basic validation)
     enum class PortDataType {
-        Any,         // Any type
-        Image,       // Image
-        Number,      // Numeric value
-        String,      // String
-        Bool,        // Boolean
-        Array,       // Array
-        Object       // Object
+        Any,
+        Image,
+        Binary,
+        Number,
+        String,
+        Bool,
+        Array,
+        Object
     };
+
+    // Forward declaration for OpenCV type without including headers here.
+    namespace cv {
+        class Mat;
+    }
 
     // Port definition
     struct PortInfo {
-        int index;              // Port index
-        std::string name;       // Port name
-        PortDataType dataType;  // Data type
-        bool required;          // Required (input port only)
-        
-        PortInfo(int idx, const std::string& n, PortDataType type, bool req = true)
-            : index(idx), name(n), dataType(type), required(req) {}
+        int index = 0;
+        std::string name;
+        PortDataType dataType = PortDataType::Any;
+        bool required = true;
+        std::string valueType; // optional C++ type name, e.g. "cv::Mat"
+        std::string desc;
+        std::type_index cppType = typeid(void); // optional runtime type checking
+
+        PortInfo() = default;
+
+        PortInfo(int idx,
+                 const std::string& portName,
+                 PortDataType t,
+                 bool req = true,
+                 const std::string& vt = {},
+                 const std::string& d = {})
+            : index(idx)
+            , name(portName)
+            , dataType(t)
+            , required(req)
+            , valueType(vt)
+            , desc(d)
+            , cppType(typeid(void)) {}
+
+        PortInfo(int idx,
+                 const std::string& portName,
+                 PortDataType t,
+                 bool req,
+                 const std::string& vt,
+                 const std::string& d,
+                 std::type_index type)
+            : index(idx)
+            , name(portName)
+            , dataType(t)
+            , required(req)
+            , valueType(vt)
+            , desc(d)
+            , cppType(type) {}
+
+        template<typename T>
+        static PortInfo Typed(int idx,
+                              const std::string& portName,
+                              bool req = true,
+                              const std::string& d = {},
+                              const std::string& vtOverride = {}) {
+            const std::string vt = vtOverride.empty() ? PortTypeTraits<T>::valueType() : vtOverride;
+            return PortInfo(idx, portName, PortTypeTraits<T>::dataType, req, vt, d, typeid(T));
+        }
     };
 
     // Node execution result
-    struct ExecuteResult {
-        bool success;
-        std::string errorMessage;
-        std::map<std::string, std::any> outputs;  // Port name -> Output data
-        int nextBranch;  // For control flow nodes, -1 = default, 0/1 = branch selection
+    struct NodeResult {
+        result result;
+        std::string msg;
+        NodeResult(){}
         
-        ExecuteResult() : success(true), nextBranch(-1) {}
-        
-        static ExecuteResult Success(const std::map<std::string, std::any>& out) {
-            ExecuteResult r;
-            r.success = true;
-            r.outputs = out;
+        static NodeResult Success(const std::map<std::string, std::any>& out) {
+            NodeResult r;
+            r.result = result::ok;
             return r;
         }
         
-        static ExecuteResult Error(const std::string& msg) {
-            ExecuteResult r;
+        static NodeResult Error(const std::string& msg) {
+            NodeResult r;
             r.success = false;
             r.errorMessage = msg;
             return r;
         }
-        
-        static ExecuteResult Branch(int branch, const std::map<std::string, std::any>& out = {}) {
-            ExecuteResult r;
-            r.success = true;
-            r.nextBranch = branch;
-            r.outputs = out;
-            return r;
-        }
     };
 
-    // Node base class
     class Node {
     public:
-        Node(int id, const std::string& name, NodeType type)
-            : id_(id), name_(name), type_(type), active_(true) {}
-        
-        virtual ~Node() = default;
+        virtual ~Node(){};
 
         // Core execution method - must be implemented by subclasses
-        virtual ExecuteResult execute(const std::map<std::string, std::any>& inputs) = 0;
+        virtual NodeResult execute(context & context) = 0;
         
         // Get node input/output port definitions
-        virtual std::vector<PortInfo> getInputPorts() const { return {}; }
-        virtual std::vector<PortInfo> getOutputPorts() const { return {}; }
+        virtual std::vector<PortInfo> getInputPorts() const { return input_ports_; }
+        virtual std::vector<PortInfo> getOutputPorts() const { return output_ports_; }
 
-        // Convenience: map port index <-> name (fallback to "0","1"...)
-        std::string getInputPortName(int portIndex) const {
-            for (const auto& p : getInputPorts()) {
-                if (p.index == portIndex) return p.name;
-            }
-            return std::to_string(portIndex);
-        }
-
-        std::string getOutputPortName(int portIndex) const {
-            for (const auto& p : getOutputPorts()) {
-                if (p.index == portIndex) return p.name;
-            }
-            return std::to_string(portIndex);
-        }
-        
         // Node initialization (optional override)
         virtual bool init() { return true; }
         
@@ -111,11 +140,40 @@ namespace flow {
         // Accessors
         int getId() const { return id_; }
         const std::string& getName() const { return name_; }
-        NodeType getType() const { return type_; }
         
-        // Active state (for conditional branching)
-        bool isActive() const { return active_; }
-        void setActive(bool active) { active_ = active; }
+        const PortInfo* getOutputPortInfo(int index) const {
+            for (const PortInfo& p : output_ports_) {
+                if (p.index == index) return &p;
+            }
+            return nullptr;
+        }
+        const PortInfo* getInputPortInfo(int index) const {
+            for (const PortInfo& p : input_ports_) {
+                if (p.index == index) return &p;
+            }
+            return nullptr;
+        }
+
+        std::string getOutputPortName(int index) const {
+            for (const PortInfo& outputPort : output_ports_) {
+                if (outputPort.index == index) {
+                    return outputPort.name;
+                }
+            }
+            return "";
+        }
+        std::string getInputPortName(int index) const {
+            for (const PortInfo& inputPort : input_ports_) {
+                if (inputPort.index == index) {
+                    return inputPort.name;
+                }
+            }
+            return "";
+        }
+
+        // // Active state (for conditional branching)
+        // bool isActive() const { return active_; }
+        // void setActive(bool active) { active_ = active; }
         
         // Parameter system
         void setParam(const std::string& key, const std::any& value) {
@@ -142,9 +200,28 @@ namespace flow {
     protected:
         int id_;
         std::string name_;
-        NodeType type_;
-        bool active_;
+        std::vector<PortInfo> input_ports_;
+        std::vector<PortInfo> output_ports_;
         std::map<std::string, std::any> params_;  // Node parameters
+
+        // Helpers for derived nodes to declare typed ports via templates.
+        template<typename T>
+        void addInputPort(int index,
+                          const std::string& portName,
+                          bool required = true,
+                          const std::string& desc = {},
+                          const std::string& valueTypeOverride = {}) {
+            input_ports_.push_back(PortInfo::Typed<T>(index, portName, required, desc, valueTypeOverride));
+        }
+
+        template<typename T>
+        void addOutputPort(int index,
+                           const std::string& portName,
+                           bool required = true,
+                           const std::string& desc = {},
+                           const std::string& valueTypeOverride = {}) {
+            output_ports_.push_back(PortInfo::Typed<T>(index, portName, required, desc, valueTypeOverride));
+        }
     };
 
     // Smart pointer type alias

@@ -67,7 +67,6 @@ namespace flow {
             
             // Reset all node states
             for (auto& node : graph.getNodes()) {
-                node->setActive(true);
                 node->reset();
             }
             
@@ -194,9 +193,6 @@ namespace flow {
                     }
                     continue;
                 }
-                
-                // Skip inactive nodes
-                if (!node->isActive()) continue;
                 
                 state_ = EngineState::Running;
                 if (!executeNode(node, graph, options)) {
@@ -457,7 +453,7 @@ namespace flow {
         
         // Execute single node
         bool executeNode(NodePtr node, Graph& graph, const ExecutionOptions& options) {
-            if (!node || !node->isActive()) {
+            if (!node ) {
                 return true;  // Skip inactive nodes
             }
             
@@ -479,15 +475,6 @@ namespace flow {
             
             // Gather inputs
             auto inputs = gatherInputs(node, graph);
-
-            std::string preNodeError;
-            if (!runPreNodeScript(node, inputs, preNodeError)) {
-                // Observability callback must not block node execution.
-                if (onError_) {
-                    onError_(node->getId(), preNodeError);
-                }
-            }
-            
             // Execute node
             auto startTime = std::chrono::high_resolution_clock::now();
             ExecuteResult result = node->execute(inputs);
@@ -551,8 +538,6 @@ namespace flow {
         void deactivateDownstream(int nodeId, Graph& graph) {
             auto node = graph.getNode(nodeId);
             if (!node) return;
-            
-            node->setActive(false);
             
             for (auto& edge : graph.getOutgoingEdges(nodeId)) {
                 edge->setActive(false);
@@ -649,7 +634,6 @@ namespace flow {
 
             ofs << "M\tnode_id\tN\t" << node->getId() << "\n";
             ofs << "M\tnode_name\tS\t" << escapeValue(node->getName()) << "\n";
-            ofs << "M\tnode_type\tS\t" << nodeTypeToString(node->getType()) << "\n";
 
             for (const auto& kv : inputs) {
                 const std::string& key = kv.first;
@@ -667,162 +651,6 @@ namespace flow {
                 }
             }
             return static_cast<bool>(ofs);
-        }
-
-        static std::string buildPreNodeRunnerScript() {
-            return
-                "import sys\n"
-                "def _unescape(v: str) -> str:\n"
-                "    return v.replace('\\\\t', '\\t').replace('\\\\n', '\\n').replace('\\\\\\\\', '\\\\')\n"
-                "\n"
-                "def _read_ctx(path):\n"
-                "    meta = {}\n"
-                "    inputs = {}\n"
-                "    with open(path, 'r', encoding='utf-8') as f:\n"
-                "        for line in f:\n"
-                "            line = line.rstrip('\\n')\n"
-                "            if not line:\n"
-                "                continue\n"
-                "            parts = line.split('\\t', 3)\n"
-                "            if len(parts) != 4:\n"
-                "                continue\n"
-                "            kind, key, typ, raw = parts\n"
-                "            if typ == 'N':\n"
-                "                val = float(raw)\n"
-                "            elif typ == 'B':\n"
-                "                val = raw in ('1', 'true', 'True')\n"
-                "            elif typ == 'S':\n"
-                "                val = _unescape(raw)\n"
-                "            else:\n"
-                "                continue\n"
-                "            if kind == 'M':\n"
-                "                meta[key] = val\n"
-                "            elif kind == 'I':\n"
-                "                inputs[key] = val\n"
-                "    return {\n"
-                "        'node_id': int(meta.get('node_id', 0)),\n"
-                "        'node_name': str(meta.get('node_name', '')),\n"
-                "        'node_type': str(meta.get('node_type', '')),\n"
-                "        'inputs': dict(inputs),\n"
-                "    }\n"
-                "\n"
-                "def _load_callback(script_path):\n"
-                "    src = open(script_path, 'r', encoding='utf-8').read()\n"
-                "    safe_builtins = {\n"
-                "        'abs': abs,\n"
-                "        'min': min,\n"
-                "        'max': max,\n"
-                "        'sum': sum,\n"
-                "        'len': len,\n"
-                "        'range': range,\n"
-                "        'int': int,\n"
-                "        'float': float,\n"
-                "        'str': str,\n"
-                "        'bool': bool,\n"
-                "        'round': round,\n"
-                "        'print': print,\n"
-                "    }\n"
-                "    g = {'__builtins__': safe_builtins}\n"
-                "    l = {}\n"
-                "    exec(src, g, l)\n"
-                "    fn = l.get('before_node') or g.get('before_node')\n"
-                "    if not callable(fn):\n"
-                "        raise RuntimeError('user script must define callable before_node(ctx)')\n"
-                "    return fn\n"
-                "\n"
-                "def main():\n"
-                "    if len(sys.argv) != 3:\n"
-                "        return 2\n"
-                "    script_path, in_path = sys.argv[1], sys.argv[2]\n"
-                "    callback = _load_callback(script_path)\n"
-                "    ctx = _read_ctx(in_path)\n"
-                "    callback(ctx)\n"
-                "    return 0\n"
-                "\n"
-                "if __name__ == '__main__':\n"
-                "    raise SystemExit(main())\n";
-        }
-
-        bool runPreNodeScript(
-            NodePtr node,
-            const std::map<std::string, std::any>& inputs,
-            std::string& err) {
-            err.clear();
-
-            if (!preNodeScriptConfig_.enabled) {
-                return true;
-            }
-
-            std::string scriptText = preNodeScriptConfig_.scriptText;
-            if (scriptText.empty() && !preNodeScriptConfig_.scriptPath.empty()) {
-                std::ifstream ifs(preNodeScriptConfig_.scriptPath, std::ios::binary);
-                if (!ifs) {
-                    err = "cannot open pre-node scriptPath: " + preNodeScriptConfig_.scriptPath;
-                    return false;
-                }
-                std::ostringstream oss;
-                oss << ifs.rdbuf();
-                scriptText = oss.str();
-            }
-            if (scriptText.empty()) {
-                return true;
-            }
-
-            const auto now = std::chrono::high_resolution_clock::now().time_since_epoch().count();
-            const std::string token = std::to_string(node->getId()) + "_" + std::to_string(now);
-            const std::filesystem::path tmpDir = std::filesystem::temp_directory_path() / "flow_engine_py_callback";
-            std::error_code ec;
-            std::filesystem::create_directories(tmpDir, ec);
-
-            const std::filesystem::path runnerPath = tmpDir / ("runner_" + token + ".py");
-            const std::filesystem::path userScriptPath = tmpDir / ("user_" + token + ".py");
-            const std::filesystem::path inputPath = tmpDir / ("input_" + token + ".txt");
-            const std::filesystem::path stderrPath = tmpDir / ("stderr_" + token + ".txt");
-
-            auto cleanup = [&]() {
-                std::filesystem::remove(runnerPath, ec);
-                std::filesystem::remove(userScriptPath, ec);
-                std::filesystem::remove(inputPath, ec);
-                std::filesystem::remove(stderrPath, ec);
-            };
-
-            if (!writeAllText(runnerPath, buildPreNodeRunnerScript())) {
-                err = "failed to write pre-node runner";
-                cleanup();
-                return false;
-            }
-            if (!writeAllText(userScriptPath, scriptText)) {
-                err = "failed to write user pre-node script";
-                cleanup();
-                return false;
-            }
-            if (!writePreNodeInputFile(inputPath, node, inputs)) {
-                err = "unsupported input type for pre-node script";
-                cleanup();
-                return false;
-            }
-
-            const std::string cmd =
-                quoteForShell(preNodeScriptConfig_.pythonPath) + " -I -S " +
-                quoteForShell(runnerPath.string()) + " " +
-                quoteForShell(userScriptPath.string()) + " " +
-                quoteForShell(inputPath.string()) +
-                " 2> " + quoteForShell(stderrPath.string());
-
-            const int rc = std::system(cmd.c_str());
-            if (rc != 0) {
-                const std::string stderrText = readAllText(stderrPath);
-                if (!stderrText.empty()) {
-                    err = stderrText;
-                } else {
-                    err = "python process failed";
-                }
-                cleanup();
-                return false;
-            }
-
-            cleanup();
-            return true;
         }
         
     private:

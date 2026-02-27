@@ -20,17 +20,27 @@ namespace flow {
     class SourceImageNode : public Node {
     public:
         SourceImageNode(int id, const std::string& name, const std::string& path = {})
-            : Node(id, name, NodeType::Source) {
+            : Node(id, name) {
             if (!path.empty()) {
                 setParam("path", path);
             }
+
+            addOutputPort<std::vector<std::uint8_t>>(
+                0,
+                "image",
+                true,
+                "图片文件原始字节（未解码）"
+            );
+            addOutputPort<std::string>(
+                1,
+                "path",
+                false,
+                "输入图片路径"
+            );
         }
 
         std::vector<PortInfo> getOutputPorts() const override {
-            return {
-                PortInfo(0, "image", PortDataType::Image),
-                PortInfo(1, "path",  PortDataType::String, false)
-            };
+            return output_ports_;
         }
 
         ExecuteResult execute(const std::map<std::string, std::any>& /*inputs*/) override {

@@ -7,9 +7,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # ---------- Fix garbled output on Windows / MSVC ----------
-# 1) Ensure MSVC/clang-cl treat source files as UTF-8.
-#    This prevents mojibake when errors/warnings reference Chinese comments/strings.
-# 2) Other compilers keep default behavior (you can extend if needed).
 if(MSVC)
 set(ENV{VSLANG} 1033)
     add_compile_options(/utf-8)
@@ -20,27 +17,44 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 
+
+set(OPENCV_ROOT "D:/software/opencv412/build/" CACHE PATH "OpenCV root directory")
+include( ${OPENCV_ROOT}/OpenCVConfig.cmake )
+
+message( STATUS "OpenCV library status:" )
+message( STATUS "    version: ${OpenCV_VERSION}" )
+message( STATUS "    libraries: ${OpenCV_LIBS}" )
+message( STATUS "    include path: ${OpenCV_INCLUDE_DIRS}" )
+
+include_directories( ${OpenCV_INCLUDE_DIRS} )
+
+
 set(PROJECT_SOURCES
     src/main.cpp
     src/Edge.h
     src/ExecutionContext.h
+    
     src/Flow.h
     src/FlowEngine.h
     src/Graph.h
     src/Node.h
-    src/Nodes.h
+    src/SourceImageNode.h
+    src/ImageSourceNode.h
+    src/ImageSourceNode.cpp
+    src/ImageCropNode.h
+    src/ImageCropNode.cpp
+    src/ImageSaveNode.h
+    src/ImageSaveNode.cpp
 )
 
 # Create executable (console application)
 add_executable(${PROJECT_NAME} ${PROJECT_SOURCES})
 
+target_link_libraries( ${PROJECT_NAME} ${OpenCV_LIBS} )
+
+
 # Set as console application (show console window)
 set_target_properties(${PROJECT_NAME}
     PROPERTIES
-        WIN32_EXECUTABLE FALSE
+         WIN32_EXECUTABLE OFF
 )
-
-target_link_libraries(${PROJECT_NAME}
-
-)
-

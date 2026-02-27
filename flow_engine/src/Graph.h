@@ -72,6 +72,31 @@ namespace flow {
         
         // ========== Edge Management ==========
         
+        static const char* portDataTypeToString(PortDataType t) {
+            switch (t) {
+                case PortDataType::Any: return "Any";
+                case PortDataType::Image: return "Image";
+                case PortDataType::Binary: return "Binary";
+                case PortDataType::Number: return "Number";
+                case PortDataType::String: return "String";
+                case PortDataType::Bool: return "Bool";
+                case PortDataType::Array: return "Array";
+                case PortDataType::Object: return "Object";
+            }
+            return "Unknown";
+        }
+
+        static bool isPortTypeCompatible(const PortInfo& outputPort, const PortInfo& inputPort) {
+            if (outputPort.cppType != std::type_index(typeid(void)) &&
+                inputPort.cppType != std::type_index(typeid(void))) {
+                return outputPort.cppType == inputPort.cppType;
+            }
+            if (outputPort.dataType == PortDataType::Any || inputPort.dataType == PortDataType::Any) {
+                return true;
+            }
+            return outputPort.dataType == inputPort.dataType;
+        }
+
         // Add edge (connect two nodes)
         EdgePtr connect(int srcNodeId, int srcPort, int dstNodeId, int dstPort) {
             Node* src = getNode(srcNodeId).get();
@@ -79,6 +104,33 @@ namespace flow {
             
             if (!src || !dst) {
                 throw std::runtime_error("Invalid node ID for connection");
+            }
+
+            const PortInfo* srcOut = src->getOutputPortInfo(srcPort);
+            if (!srcOut) {
+                throw std::runtime_error(
+                    "Invalid connection: source node [" + src->getName() + "] (id=" + std::to_string(src->getId()) +
+                    ") has no output port index " + std::to_string(srcPort)
+                );
+            }
+
+            const PortInfo* dstIn = dst->getInputPortInfo(dstPort);
+            if (!dstIn) {
+                throw std::runtime_error(
+                    "Invalid connection: destination node [" + dst->getName() + "] (id=" + std::to_string(dst->getId()) +
+                    ") has no input port index " + std::to_string(dstPort)
+                );
+            }
+
+            if (!isPortTypeCompatible(*srcOut, *dstIn)) {
+                const std::string srcType = srcOut->valueType.empty() ? std::string(portDataTypeToString(srcOut->dataType)) : srcOut->valueType;
+                const std::string dstType = dstIn->valueType.empty() ? std::string(portDataTypeToString(dstIn->dataType)) : dstIn->valueType;
+
+                throw std::runtime_error(
+                    "Invalid connection: [" + src->getName() + "] output(" + std::to_string(srcPort) + ":" + srcOut->name + "," + srcType +
+                    ") -> [" + dst->getName() + "] input(" + std::to_string(dstPort) + ":" + dstIn->name + "," + dstType +
+                    ") port type mismatch"
+                );
             }
             
             auto edge = std::make_shared<Edge>(nextEdgeId_++, src, srcPort, dst, dstPort);
