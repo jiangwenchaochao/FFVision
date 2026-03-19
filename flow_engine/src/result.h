@@ -3,13 +3,12 @@
 
 namespace flow{
 
-
-    class result_base{
+    struct result_base{
+    public:
         virtual ~result_base(){}
     };
 
     template<node_type t>
-    class result:public result_base{
-    };
+    struct result:public result_base{};
 
 }

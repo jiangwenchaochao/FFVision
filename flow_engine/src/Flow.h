@@ -11,6 +11,3 @@
 // Image nodes
 #include "SourceImageNode.h"
 #include "ImageSourceNode.h"
-#include "ImageCropNode.h"
-#include "ImageSaveNode.h"
-

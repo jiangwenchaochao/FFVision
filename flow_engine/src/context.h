@@ -8,10 +8,6 @@ class osd;
 class context {
 public:
     virtual ~context() {}
-
-    /// 传入的图像
-    // virtual cv::Mat & mat() = 0;
-
     /// 传入的OSD对象
     virtual osd & osd() = 0;
 
