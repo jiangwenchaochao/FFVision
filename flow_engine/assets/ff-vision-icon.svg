@@ -1,0 +1,58 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accent" x1="214" y1="280" x2="814" y2="760" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#20E0FF"/>
+      <stop offset="0.55" stop-color="#17A8FF"/>
+      <stop offset="1" stop-color="#3D63FF"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="286" y1="390" x2="504" y2="632" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#D8FBFF"/>
+      <stop offset="1" stop-color="#58C3FF"/>
+    </linearGradient>
+    <radialGradient id="lens" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(646 512) rotate(90) scale(126)">
+      <stop offset="0" stop-color="#86F7FF"/>
+      <stop offset="0.35" stop-color="#31C8FF"/>
+      <stop offset="0.72" stop-color="#154F97"/>
+      <stop offset="1" stop-color="#0B1623"/>
+    </radialGradient>
+    <filter id="glow" x="120" y="190" width="784" height="644" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+      <feGaussianBlur stdDeviation="12" result="effect1_foregroundBlur_1_1"/>
+    </filter>
+  </defs>
+
+  <g>
+    <path d="M162 404H248" stroke="url(#accent)" stroke-width="28" stroke-linecap="round" opacity="0.95"/>
+    <path d="M128 512H248" stroke="url(#accent)" stroke-width="28" stroke-linecap="round" opacity="0.75"/>
+    <path d="M162 620H248" stroke="url(#accent)" stroke-width="28" stroke-linecap="round" opacity="0.55"/>
+
+    <path d="M260 332H712C776.065 332 828 383.935 828 448V576C828 640.065 776.065 692 712 692H260C228.52 692 203 666.48 203 635V389C203 357.52 228.52 332 260 332Z" stroke="url(#accent)" stroke-width="32" stroke-linejoin="round"/>
+    <path d="M724 404H774" stroke="url(#accent)" stroke-width="20" stroke-linecap="round" opacity="0.8"/>
+    <path d="M724 620H774" stroke="url(#accent)" stroke-width="20" stroke-linecap="round" opacity="0.8"/>
+    <path d="M734 276H784C803.882 276 820 292.118 820 312V350" stroke="url(#accent)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="284" y="396" width="232" height="232" rx="44" fill="#0D1A28" stroke="url(#panel)" stroke-width="18"/>
+    <path d="M332 454H468" stroke="url(#panel)" stroke-width="24" stroke-linecap="round" opacity="0.95"/>
+    <path d="M332 512H428" stroke="url(#panel)" stroke-width="24" stroke-linecap="round" opacity="0.82"/>
+    <path d="M332 570H452" stroke="url(#panel)" stroke-width="24" stroke-linecap="round" opacity="0.68"/>
+    <path d="M474 428V596" stroke="url(#panel)" stroke-width="12" stroke-linecap="round" opacity="0.55"/>
+
+    <circle cx="646" cy="512" r="126" fill="url(#lens)"/>
+    <circle cx="646" cy="512" r="92" stroke="#9AF3FF" stroke-opacity="0.72" stroke-width="14"/>
+    <circle cx="646" cy="512" r="48" fill="#0C1622"/>
+    <circle cx="680" cy="476" r="16" fill="#E8FDFF"/>
+
+    <path d="M584 432H556V404" stroke="#A7F7FF" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M708 432H736V404" stroke="#A7F7FF" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M584 592H556V620" stroke="#A7F7FF" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M708 592H736V620" stroke="#A7F7FF" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <g filter="url(#glow)" opacity="0.3">
+      <path d="M162 404H248" stroke="#38D2FF" stroke-width="16" stroke-linecap="round"/>
+      <path d="M128 512H248" stroke="#38D2FF" stroke-width="16" stroke-linecap="round"/>
+      <path d="M260 332H712C776.065 332 828 383.935 828 448V576C828 640.065 776.065 692 712 692H260C228.52 692 203 666.48 203 635V389C203 357.52 228.52 332 260 332Z" stroke="#38D2FF" stroke-width="14" stroke-linejoin="round"/>
+      <circle cx="646" cy="512" r="126" stroke="#38D2FF" stroke-width="12"/>
+    </g>
+  </g>
+</svg>

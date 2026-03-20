@@ -6,6 +6,10 @@ set(PROJECT_NAME FlowEngine)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(CMAKE_C_COMPILER clang-cl)
+set(CMAKE_CXX_COMPILER clang-cl)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # ---------- Fix garbled output on Windows / MSVC ----------
 if(MSVC)
 set(ENV{VSLANG} 1033)
@@ -33,18 +37,11 @@ set(PROJECT_SOURCES
     src/main.cpp
     src/Edge.h
     src/ExecutionContext.h
-    
     src/Flow.h
     src/FlowEngine.h
     src/Graph.h
     src/Node.h
     src/SourceImageNode.h
-    src/ImageSourceNode.h
-    src/ImageSourceNode.cpp
-    src/ImageCropNode.h
-    src/ImageCropNode.cpp
-    src/ImageSaveNode.h
-    src/ImageSaveNode.cpp
 )
 
 # Create executable (console application)

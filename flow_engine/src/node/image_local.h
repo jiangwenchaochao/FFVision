@@ -7,11 +7,12 @@
 namespace cv {
     class Mat;
 }
+
 namespace flow{
 
-
     class image{
-        image(cv::Mat mat, int id) noexcept{
+    public:
+        image(cv::Mat & mat, int id) noexcept{
             this->mat_ = mat;
             this->frame_id_ = id;
         }
@@ -35,7 +36,7 @@ namespace flow{
     public:
         cv::Mat mat_;
         int frame_id_ = 0;
-    }
+    };
 
     template<>
     struct result<node_type::image_local>{

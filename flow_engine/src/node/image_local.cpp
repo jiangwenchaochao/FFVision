@@ -1,7 +1,6 @@
 #include "image_local.h"
 
 #include <opencv2/opencv.hpp>
-#include <chrono>
 #include <thread>
 #include <algorithm>
 
@@ -48,16 +47,15 @@ namespace flow{
     void image_local::exec(context & context) {
         using namespace std::chrono;
         if (img_count_ <= 0 || image_paths_.empty()) {
-            break;
+            return;
         }
         const auto & path = image_paths_[img_index_];
         cv::Mat frame = cv::imread(path.string(), cv::IMREAD_COLOR);
         if (frame.empty()) {
             img_index_ = (img_index_ + 1) % img_count_;
             std::this_thread::sleep_for(frame_interval);
-            continue;
         }
-        image img = new image(frame,img_index_);
+        image * img = new image(frame,img_index_);
         result_.image_ = img;
         img_index_ = (img_index_ + 1) % img_count_;
         context.set("image", img);
